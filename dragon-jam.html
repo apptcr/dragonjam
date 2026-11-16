@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dragon Jam: Color Defense</title>
+<style>
+  :root {
+    --bg-dark: #12151e;
+    --panel-bg: #1c2130;
+    --accent: #ffbe0b;
+    --text-light: #f1f5f9;
+    --text-muted: #94a3b8;
+  }
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #game-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 860px;
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  /* Top HUD */
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    z-index: 10;
+  }
+  .hud-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .badge {
+    background: #2a324b;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .badge span {
+    color: var(--accent);
+  }
+  .btn-ctrl {
+    background: #334155;
+    color: #fff;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-ctrl:active {
+    transform: scale(0.94);
+  }
+  #btn-speed.fast-2 {
+    background: #0284c7;
+    box-shadow: 0 0 10px rgba(2, 132, 199, 0.5);
+  }
+  #btn-speed.fast-4 {
+    background: #e11d48;
+    box-shadow: 0 0 12px rgba(225, 29, 72, 0.6);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    flex: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  /* Modal Overlay */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 15, 25, 0.88);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+    z-index: 20;
+    transition: opacity 0.25s;
+  }
+  #overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #overlay h1 {
+    font-size: 32px;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #ffbe0b, #fb5607);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  #overlay p {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 340px;
+    margin: 0 0 24px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #ffbe0b, #f59e0b);
+    color: #0f172a;
+    border: none;
+    padding: 14px 32px;
+    font-size: 18px;
+    font-weight: 800;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
+    transition: transform 0.15s;
+  }
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #cbd5e1;
+    background: rgba(255,255,255,0.05);
+    padding: 10px 16px;
+    border-radius: 12px;
+  }
+  #ai-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: #161b29;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <div id="hud">
+    <div class="hud-group">
+      <div class="badge">ด่าน <span id="lvl-num">1</span></div>
+      <div class="badge">🐉 <span id="seg-left">0</span></div>
+    </div>
+    <div class="hud-group">
+      <button id="btn-sound" class="btn-ctrl" title="เปิด/ปิดเสียง">🔊</button>
+      <button id="btn-speed" class="btn-ctrl" title="เร่งความเร็ว">⏩ x1</button>
+      <button id="btn-restart" class="btn-ctrl" title="เริ่มด่านใหม่">🔄</button>
+    </div>
+  </div>
+
+  <div id="ai-bar"></div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="overlay">
+    <h1 id="modal-title">DRAGON JAM</h1>
+    <p id="modal-desc">คลิกปล่อยรถบัสที่ทางออกว่าง เพื่อขึ้นไปเป็นป้อมปืนยิงมังกรตามสีให้ทันก่อนมังกรจะถึงตัวน้องแมว!</p>
+    <div class="legend">
+      <span>🎯 ยิงตรงสีหัวมังกร</span>
+      <span>❓ รถปริศนา</span>
+      <span>🪨 กำแพงตัน</span>
+      <span>🤖 AI ปรับเกม</span>
+    </div>
+    <button id="btn-action" class="btn-primary">เริ่มเกมเลย</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const lvlNumEl = document.getElementById('lvl-num');
+  const segLeftEl = document.getElementById('seg-left');
+  const btnSpeed = document.getElementById('btn-speed');
+  const btnRestart = document.getElementById('btn-restart');
+  const btnSound = document.getElementById('btn-sound');
+  const overlay = document.getElementById('overlay');
+  const modalTitle = document.getElementById('modal-title');
+  const modalDesc = document.getElementById('modal-desc');
+  const btnAction = document.getElementById('btn-action');
+  const aiBar = document.getElementById('ai-bar');
+
+  // --- Audio Synthesizer (Web Audio API) ---
+  let soundEnabled = true;
+  let audioCtx = null;
+  function playTone(freq, type, duration, vol = 0.1, slideTo = null) {
+    if (!soundEnabled) return;
+    try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  const sfx = {
+    click: () => playTone(520, 'sine', 0.08, 0.12, 780),
+    blocked: () => { director.skill = Math.max(0, director.skill - 0.05); playTone(150, 'sawtooth', 0.14, 0.1, 110); },
+    shoot: () => playTone(880, 'triangle', 0.07, 0.08, 320),
+    hit: () => playTone(260, 'square', 0.09, 0.09, 120),
+    win: () => {
+      playTone(523, 'sine', 0.15, 0.12);
+      setTimeout(() => playTone(659, 'sine', 0.15, 0.12), 120);
+      setTimeout(() => playTone(784, 'sine', 0.3, 0.15), 240);
+    },
+    lose: () => {
+      playTone(300, 'sawtooth', 0.2, 0.12, 220);
+      setTimeout(() => playTone(210, 'sawtooth', 0.35, 0.12, 130), 200);
+    }
+  };
+
+  // --- Palette & Constants ---
+  const PALETTE = [
+    { id: 'red',    fill: '#ef4444', dark: '#991b1b', light: '#fca5a5' },
+    { id: 'blue',   fill: '#3b82f6', dark: '#1e40af', light: '#93c5fd' },
+    { id: 'green',  fill: '#10b981', dark: '#065f46', light: '#6ee7b7' },
+    { id: 'yellow', fill: '#f59e0b', dark: '#92400e', light: '#fde68a' },
+    { id: 'purple', fill: '#a855f7', dark: '#581c87', light: '#d8b4fe' }
+  ];
+
+  const FOG = { fill: '#2d3652', dark: '#1e2538', light: '#47547a' };
+  const DIRS = [
+    { name: 'UP',    dr: -1, dc: 0, angle: -Math.PI / 2 },
+    { name: 'DOWN',  dr: 1,  dc: 0, angle: Math.PI / 2 },
+    { name: 'LEFT',  dr: 0,  dc: -1, angle: Math.PI },
+    { name: 'RIGHT', dr: 0,  dc: 1, angle: 0 }
+  ];
+
+  // --- Game State ---
+  let W = 480, H = 780;
+  let level = 1;
+  let speedMult = 1;
+  let gameState = 'MENU'; // MENU, PLAYING, WIN, LOSE
+  let lastTime = 0;
+
+  // Path & Dragon
+  let waypoints = [];
+  let pathSegments = [];
+  let totalPathLen = 0;
+  let dragonSegments = [];
+  let dragonSpeed = 24;
+  const SEG_SPACING = 22;
+
+  // Turret Slots
+  const SLOT_COUNT = 5;
+  let slots = [];
+  let movingCars = [];
+  let bullets = [];
+  let particles = [];
+  let floatingTexts = [];
+
+  // Parking Grid
+  let gridRows = 4, gridCols = 4;
+  let grid = [];
+  let gridArea = { x: 0, y: 0, w: 0, h: 0, cellSize: 0 };
+  let slotArea = { y: 0, slotW: 56, slotH: 56, gap: 12 };
+
+  // --- Resize & Layout ---
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    W = rect.width;
+    H = rect.height;
+    computeLayout();
+  }
+  window.addEventListener('resize', resize);
+
+  function computeLayout() {
+    const pathTop = 26;
+    const pathBottom = H * 0.43;
+    const marginX = 42;
+    const rows = 4;
+    const rowH = (pathBottom - pathTop) / (rows - 1);
+
+    waypoints = [];
+    for (let r = 0; r < rows; r++) {
+      const y = pathTop + r * rowH;
+      if (r % 2 === 0) {
+        waypoints.push({ x: marginX, y });
+        waypoints.push({ x: W - marginX, y });
+      } else {
+        waypoints.push({ x: W - marginX, y });
+        waypoints.push({ x: marginX, y });
+      }
+    }
+
+    pathSegments = [];
+    totalPathLen = 0;
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const a = waypoints[i];
+      const b = waypoints[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      pathSegments.push({ a, b, len, startDist: totalPathLen });
+      totalPathLen += len;
+    }
+
+    slotArea.y = pathBottom + 26;
+    slotArea.slotW = Math.min(58, (W - 72) / SLOT_COUNT);
+    slotArea.slotH = slotArea.slotW;
+    slotArea.gap = 10;
+
+    const gridTop = slotArea.y + slotArea.slotH + 26;
+    const gridBottom = H - 20;
+    const availH = gridBottom - gridTop;
+    const availW = W - 40;
+    const cellSize = Math.floor(Math.min(availW / gridCols, availH / gridRows));
+    gridArea.cellSize = cellSize;
+    gridArea.w = cellSize * gridCols;
+    gridArea.h = cellSize * gridRows;
+    gridArea.x = (W - gridArea.w) / 2;
+    gridArea.y = gridTop + (availH - gridArea.h) / 2;
+  }
+
+  function getPointAtDist(dist) {
+    if (dist <= 0) return { x: waypoints[0].x, y: waypoints[0].y, angle: 0 };
+    if (dist >= totalPathLen) {
+      const last = waypoints[waypoints.length - 1];
+      return { x: last.x, y: last.y, angle: 0 };
+    }
+    for (let i = 0; i < pathSegments.length; i++) {
+      const seg = pathSegments[i];
+      if (dist <= seg.startDist + seg.len) {
+        const t = (dist - seg.startDist) / seg.len;
+        return {
+          x: seg.a.x + (seg.b.x - seg.a.x) * t,
+          y: seg.a.y + (seg.b.y - seg.a.y) * t,
+          angle: Math.atan2(seg.b.y - seg.a.y, seg.b.x - seg.a.x)
+        };
+      }
+    }
+    return { x: waypoints[0].x, y: waypoints[0].y, angle: 0 };
+  }
+
+  // --- Level config / Director AI ---
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rnd = k => Math.floor(Math.random() * k);
+  let colorCount = 3, pool = [], cfg = {}, hintT = 0;
+  const director = { mood: 'normal', skill: 0.5, assist: 0, run: 3, speedF: 1, target: 1, timer: 0 };
+  let save = { unlocked: 1, fails: {} };
+  try { const sv = JSON.parse(localStorage.getItem('dragonjam2')); if (sv && sv.unlocked) save = sv; } catch (e) {}
+  const persist = () => { try { localStorage.setItem('dragonjam2', JSON.stringify(save)); } catch (e) {} };
+  const MOODS = { relief: '🟢 ผ่อนให้', normal: '🟡 สมดุล', challenge: '🔴 ท้าทาย' };
+
+  function levelConfig(l) {
+    const boss = l % 5 === 0, rest = l > 1 && l % 5 === 1;
+    const d = clamp((l - 1) / 24 + (boss ? 0.1 : 0) - (rest ? 0.08 : 0), 0, 1);
+    const size = l <= 3 ? 4 : l <= 6 ? 5 : 6;
+    const walls = l < 8 ? 0 : Math.min(5, 1 + ((l - 8) >> 2) + (boss ? 1 : 0));
+    const ammo = d < 0.2 ? [4, 5, 6] : d < 0.5 ? [3, 4, 6, 8] : [3, 4, 6, 8, 10];
+    const avg = ammo.reduce((a, b) => a + b) / ammo.length;
+    const cars = Math.max(6, Math.min(Math.round(size * size * (0.55 + 0.25 * d)), size * size - walls - 2, Math.floor(150 / avg)));
+    return {
+      boss, size, walls, ammo, cars, colors: l <= 2 ? 3 : l <= 5 ? 4 : 5,
+      speed: 17 + 26 * d + (boss ? 3 : 0), window: Math.max(4, Math.round(8 - 4 * d) - (boss ? 1 : 0)),
+      mystery: l < 3 ? 0 : Math.min(0.35, 0.08 + 0.3 * d)
+    };
+  }
+
+  function updateBar() {
+    aiBar.innerHTML = `<span>🤖 AI: ${MOODS[director.mood]}</span><span>${cfg.boss ? '🔥 ด่านบอส · ' : ''}เห็นล่วงหน้า ${cfg.window} ตัว${director.assist ? ' · 🛟 โหมดช่วย' : ''}</span>`;
+  }
+
+  // จำนวนรถที่ต้องเคลียร์ก่อนจะปล่อยรถคันนี้ได้ (Fixed: อ้างอิงทิศทางของรถแต่ละคันให้ถูกต้อง)
+  function digCost(r, c) {
+    const seen = new Set(), st = [[r, c]];
+    while (st.length) {
+      const [cr, cc] = st.pop();
+      const currentCar = grid[cr]?.[cc];
+      if (!currentCar || currentCar.wall) continue;
+      let nr = cr + currentCar.dir.dr, nc = cc + currentCar.dir.dc;
+      while (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) {
+        const o = grid[nr][nc];
+        if (o) {
+          if (o.wall) return Infinity;
+          const k = nr * gridCols + nc;
+          if (!seen.has(k)) { seen.add(k); st.push([nr, nc]); }
+        }
+        nr += currentCar.dir.dr;
+        nc += currentCar.dir.dc;
+      }
+    }
+    return seen.size;
+  }
+
+  function analyze() {
+    const spare = Array(colorCount).fill(0), cost = Array(colorCount).fill(Infinity);
+    slots.forEach(t => { if (t && t.ammo > 0) spare[t.colorIdx] += t.ammo; });
+    movingCars.forEach(m => spare[m.colorIdx] += m.ammo);
+    dragonSegments.forEach(sg => { if (!sg.doomed && sg.colorIdx >= 0) spare[sg.colorIdx]--; });
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const car = grid[r][c];
+      if (car && !car.wall) cost[car.colorIdx] = Math.min(cost[car.colorIdx], digCost(r, c));
+    }
+    spare.forEach((v, c) => { if (v > 0) cost[c] = 0; });
+    return { spare, cost, free: Math.max(0, slots.filter(t => !t || t.ammo <= 0).length - movingCars.length) };
+  }
+
+  function pick(prev, run) {
+    const info = analyze(), ws = [];
+    let tot = 0;
+    for (let c = 0; c < colorCount; c++) {
+      let w = 0;
+      if (pool[c] > 0) {
+        const k = info.cost[c], m = director.mood;
+        w = Math.sqrt(pool[c]);
+        if (k === Infinity) w *= 0.001; else if (k > 0 && k + 1 > info.free) w *= 0.03;
+        if (m === 'relief') w *= k === 0 ? 6 : k === 1 ? 2 : 0.4;
+        else if (m === 'challenge') { w *= k === 0 ? 0.9 : k <= 2 ? 2.2 : 1.4; if (info.spare[c] <= 0) w *= 1.5; }
+        else w *= k === 0 ? 2 : k === 1 ? 1.6 : k === 2 ? 1.1 : 0.7;
+        if (c === prev) w *= run < director.run ? 3.5 : 0.35;
+        else if (prev >= 0 && run < 2) w *= 0.6;
+      }
+      ws.push(w); tot += w;
+    }
+    if (tot <= 0) return Math.max(0, pool.findIndex(v => v > 0));
+    let x = Math.random() * tot;
+    for (let c = 0; c < ws.length; c++) { x -= ws[c]; if (x <= 0 && ws[c] > 0) return c; }
+    return ws.findIndex(v => v > 0);
+  }
+
+  const firstAlive = () => dragonSegments.find(sg => !sg.doomed);
+
+  function fillWindow() {
+    let n = 0, prev = -1, run = 0;
+    for (const sg of dragonSegments) {
+      if (sg.doomed) continue;
+      if (n++ >= cfg.window) break;
+      if (sg.colorIdx < 0) { sg.colorIdx = pick(prev, run); pool[sg.colorIdx]--; }
+      if (sg.colorIdx === prev) run++;
+      else {
+        prev = sg.colorIdx; run = 1;
+        director.run = director.mood === 'relief' ? 3 + rnd(3) : director.mood === 'challenge' ? 1 + rnd(3) : 2 + rnd(3);
+      }
+    }
+  }
+
+  function updateMood(dt) {
+    director.timer -= dt;
+    if (director.timer > 0) return;
+    director.timer = 0.4;
+    const h = firstAlive();
+    if (!h) return;
+    const used = slots.filter(t => t && t.ammo > 0).length + movingCars.length;
+    const stuck = h.colorIdx >= 0 && !slots.some(t => t && t.ammo > 0 && t.colorIdx === h.colorIdx) && !movingCars.some(m => m.colorIdx === h.colorIdx);
+    const t = clamp(h.dist / totalPathLen, 0, 1) * 0.65 + used / SLOT_COUNT * 0.3 + (stuck ? 0.2 : 0) + director.assist * 0.4 - (director.skill - 0.5) * 0.25;
+    const m = t > 0.62 ? 'relief' : (t < 0.28 && level > 2) ? 'challenge' : 'normal';
+    director.target = m === 'relief' ? 0.85 : m === 'challenge' ? 1.1 : 1;
+    if (m !== director.mood) { director.mood = m; updateBar(); }
+  }
+
+  function getHint() {
+    if (!slots.some(t => !t || t.ammo <= 0) || movingCars.length >= SLOT_COUNT) return null;
+    const info = analyze();
+    let n = 0;
+    for (const sg of dragonSegments) {
+      if (sg.doomed) continue;
+      if (n++ >= cfg.window) break;
+      if (sg.colorIdx < 0 || info.spare[sg.colorIdx] >= 0) continue;
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+        const car = grid[r][c];
+        if (car && !car.wall && car.colorIdx === sg.colorIdx && isPathClearInSim(grid, r, c, car.dir)) return { r, c };
+      }
+    }
+    return null;
+  }
+
+  // --- Solvable Level Generator ---
+  function initLevel(lvl) {
+    level = lvl;
+    lvlNumEl.textContent = level;
+    // Fixed: ล้างค่าสถานะและออบเจกต์เก่าทั้งหมดให้สะอาดป้องกันภาพหรือกระสุนค้าง
+    slots = Array(SLOT_COUNT).fill(null);
+    movingCars = [];
+    bullets = [];
+    particles = [];
+    floatingTexts = [];
+    dragonSegments = [];
+
+    cfg = levelConfig(lvl);
+    colorCount = cfg.colors;
+    const fails = save.fails[lvl] || 0;
+    Object.assign(director, { mood: 'normal', skill: 0.5, speedF: 1, target: 1, timer: 0, assist: Math.min(0.3, fails * 0.1) });
+    hintT = 0;
+    cfg.window = Math.min(10, cfg.window + (fails >= 2 ? 1 : 0) + (fails >= 4 ? 1 : 0));
+    dragonSpeed = cfg.speed * (1 - director.assist * 0.6);
+    gridRows = gridCols = cfg.size;
+    computeLayout();
+
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const defs = [];
+      for (let i = 0; i < cfg.cars; i++) defs.push({ colorIdx: i % colorCount, ammo: cfg.ammo[rnd(cfg.ammo.length)] });
+      shuffle(defs);
+      grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(null));
+      const cells = [];
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) cells.push({ r, c });
+      shuffle(cells);
+      for (let w = 0; w < cfg.walls; w++) { const q = cells.pop(); grid[q.r][q.c] = { wall: true }; }
+      let n = 0;
+      for (const q of cells) {
+        if (n >= defs.length) break;
+        const dirs = DIRS.filter(d => isPathClearInSim(grid, q.r, q.c, d));
+        if (!dirs.length) continue;
+        grid[q.r][q.c] = {
+          r: q.r, c: q.c, colorIdx: defs[n].colorIdx, ammo: defs[n].ammo,
+          dir: dirs[rnd(dirs.length)], mystery: Math.random() < cfg.mystery, shake: 0
+        };
+        n++;
+      }
+      if (n === defs.length) break;
+    }
+
+    pool = Array(colorCount).fill(0);
+    let total = 0;
+    grid.flat().forEach(car => { if (car && !car.wall) { pool[car.colorIdx] += car.ammo; total += car.ammo; } });
+    for (let i = 0; i < total; i++) dragonSegments.push({ colorIdx: -1, dist: -i * SEG_SPACING, radius: 13, doomed: false });
+    segLeftEl.textContent = total;
+    updateMysteryCars();
+    fillWindow();
+    updateBar();
+  }
+
+  function isPathClearInSim(simGrid, r, c, dir) {
+    let nr = r + dir.dr;
+    let nc = c + dir.dc;
+    while (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) {
+      if (simGrid[nr][nc] !== null) return false;
+      nr += dir.dr;
+      nc += dir.dc;
+    }
+    return true;
+  }
+
+  // Fixed: เฉพาะรถปริศนาที่ยังจอดอยู่ในตารางและทางออกโล่งถึงจะเปิดเผย
+  function updateMysteryCars() {
+    for (let r = 0; r < gridRows; r++) {
+      for (let c = 0; c < gridCols; c++) {
+        const car = grid[r]?.[c];
+        if (car && !car.wall && car.mystery && isPathClearInSim(grid, r, c, car.dir)) {
+          car.mystery = false;
+          const cx = gridArea.x + (c + 0.5) * gridArea.cellSize;
+          const cy = gridArea.y + (r + 0.5) * gridArea.cellSize;
+          spawnParticles(cx, cy, PALETTE[car.colorIdx].fill, 10);
+        }
+      }
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // --- Input Handling ---
+  canvas.addEventListener('pointerdown', (e) => {
+    if (gameState !== 'PLAYING') return;
+    hintT = 0;
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+
+    if (
+      px >= gridArea.x && px <= gridArea.x + gridArea.w &&
+      py >= gridArea.y && py <= gridArea.y + gridArea.h
+    ) {
+      const col = Math.floor((px - gridArea.x) / gridArea.cellSize);
+      const row = Math.floor((py - gridArea.y) / gridArea.cellSize);
+      handleCarClick(row, col);
+    }
+  });
+
+  function handleCarClick(r, c) {
+    const car = grid[r]?.[c];
+    if (!car || car.wall) return;
+
+    if (!isPathClearInSim(grid, r, c, car.dir)) {
+      car.shake = 0.35;
+      sfx.blocked();
+      return;
+    }
+
+    const reservedSlots = new Set(movingCars.map(m => m.targetSlot));
+    let freeSlot = -1;
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      if (slots[i] === null && !reservedSlots.has(i)) {
+        freeSlot = i;
+        break;
+      }
+    }
+
+    if (freeSlot === -1) {
+      car.shake = 0.35;
+      sfx.blocked();
+      floatingTexts.push({
+        x: gridArea.x + (c + 0.5) * gridArea.cellSize,
+        y: gridArea.y + r * gridArea.cellSize,
+        text: 'ช่องป้อมเต็ม!',
+        color: '#f87171',
+        life: 0.8
+      });
+      return;
+    }
+
+    sfx.click();
+    const startX = gridArea.x + (c + 0.5) * gridArea.cellSize;
+    const startY = gridArea.y + (r + 0.5) * gridArea.cellSize;
+    grid[r][c] = null;
+    updateMysteryCars();
+
+    movingCars.push({
+      fr: r, fc: c,
+      x: startX,
+      y: startY,
+      startX,
+      startY,
+      targetSlot: freeSlot,
+      colorIdx: car.colorIdx,
+      ammo: car.ammo,
+      progress: 0
+    });
+  }
+
+  function getSlotCenter(idx) {
+    const totalW = SLOT_COUNT * slotArea.slotW + (SLOT_COUNT - 1) * slotArea.gap;
+    const startX = (W - totalW) / 2;
+    return {
+      x: startX + idx * (slotArea.slotW + slotArea.gap) + slotArea.slotW / 2,
+      y: slotArea.y + slotArea.slotH / 2
+    };
+  }
+
+  // --- Main Simulation Update ---
+  function update(rawDt) {
+    if (gameState !== 'PLAYING') return;
+    const dt = Math.min(rawDt, 0.05) * speedMult;
+
+    if (dragonSegments.length > 0) {
+      director.speedF += (director.target - director.speedF) * Math.min(1, dt * 0.8);
+      updateMood(dt);
+      hintT += dt;
+      dragonSegments[0].dist += dragonSpeed * director.speedF * dt;
+      for (let i = 1; i < dragonSegments.length; i++) {
+        const targetDist = dragonSegments[i - 1].dist - SEG_SPACING;
+        if (dragonSegments[i].dist < targetDist) {
+          dragonSegments[i].dist = Math.min(targetDist, dragonSegments[i].dist + dragonSpeed * 1.6 * dt);
+        } else {
+          dragonSegments[i].dist = targetDist;
+        }
+      }
+
+      const front = firstAlive();
+      if (front && front.dist >= totalPathLen - 16) {
+        triggerGameOver(false, 'มังกรบุกถึงตัวน้องแมวแล้ว!');
+        return;
+      }
+    }
+
+    for (let r = 0; r < gridRows; r++) {
+      for (let c = 0; c < gridCols; c++) {
+        if (grid[r][c] && grid[r][c].shake > 0) {
+          grid[r][c].shake = Math.max(0, grid[r][c].shake - dt);
+        }
+      }
+    }
+
+    for (let i = movingCars.length - 1; i >= 0; i--) {
+      const m = movingCars[i];
+      m.progress += dt * 4.2;
+      const dest = getSlotCenter(m.targetSlot);
+      const t = Math.min(1, m.progress);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const sx = gridArea.x + (m.fc + 0.5) * gridArea.cellSize, sy = gridArea.y + (m.fr + 0.5) * gridArea.cellSize;
+      m.x = sx + (dest.x - sx) * ease;
+      m.y = sy + (dest.y - sy) * ease;
+
+      if (t >= 1) {
+        slots[m.targetSlot] = {
+          colorIdx: m.colorIdx,
+          ammo: m.ammo,
+          maxAmmo: m.ammo,
+          cooldown: 0,
+          recoil: 0
+        };
+        movingCars.splice(i, 1);
+      }
+    }
+
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const t = slots[i];
+      if (!t) continue;
+      if (t.ammo <= 0) { t.dying = (t.dying ?? 0.12) - dt; if (t.dying <= 0) slots[i] = null; continue; }
+      if (t.cooldown > 0) t.cooldown -= dt;
+      if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 5);
+      if (t.cooldown > 0) continue;
+      const target = firstAlive();
+      if (target && target.dist > 0 && target.colorIdx === t.colorIdx) {
+        const o = getSlotCenter(i);
+        target.doomed = true;
+        bullets.push({ x: o.x, y: o.y - 12, targetSeg: target, colorIdx: t.colorIdx, speed: 780 });
+        t.ammo--; t.cooldown = 0.14; t.recoil = 1;
+        sfx.shoot();
+      }
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      const targetPos = getPointAtDist(b.targetSeg.dist);
+      const dx = targetPos.x - b.x;
+      const dy = targetPos.y - b.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 18 || !dragonSegments.includes(b.targetSeg)) {
+        const segIdx = dragonSegments.indexOf(b.targetSeg);
+        if (segIdx !== -1) {
+          dragonSegments.splice(segIdx, 1);
+          segLeftEl.textContent = dragonSegments.length;
+          spawnParticles(targetPos.x, targetPos.y, PALETTE[b.colorIdx].fill, 12);
+          sfx.hit();
+          director.skill = Math.min(1, director.skill + 0.004);
+        }
+        bullets.splice(i, 1);
+      } else {
+        b.x += (dx / dist) * b.speed * dt;
+        b.y += (dy / dist) * b.speed * dt;
+      }
+    }
+
+    if (dragonSegments.length === 0 && bullets.length === 0) {
+      triggerGameOver(true, `ยอดเยี่ยม! คุณปกป้องน้องแมวในด่าน ${level} สำเร็จ!`);
+      return;
+    }
+
+    fillWindow();
+    const hs = firstAlive();
+    if (hs && bullets.length === 0 && movingCars.length === 0 &&
+        slots.every(t => t && t.ammo > 0) && !slots.some(t => t.colorIdx === hs.colorIdx)) {
+      triggerGameOver(false, 'ช่องป้อมปืนเต็มหมดแล้ว และไม่มีป้อมสีตรงกับหัวมังกร!');
+      return;
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 28 * dt;
+      ft.life -= dt;
+      if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+  }
+
+  function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 40 + Math.random() * 110;
+      particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        color,
+        life: 0.35 + Math.random() * 0.2,
+        size: 3 + Math.random() * 3
+      });
+    }
+  }
+
+  function triggerGameOver(isWin, message) {
+    gameState = isWin ? 'WIN' : 'LOSE';
+    if (isWin) {
+      sfx.win();
+      save.unlocked = Math.max(save.unlocked, level + 1); save.fails[level] = 0; persist();
+      modalTitle.textContent = `ผ่านด่าน ${level} สำเร็จ!`;
+      btnAction.textContent = `ลุยด่าน ${level + 1} ต่อ ➔`;
+    } else {
+      sfx.lose();
+      save.fails[level] = (save.fails[level] || 0) + 1; persist();
+      message += ' (🛟 รอบหน้า AI จะช่วยผ่อนให้เล็กน้อย)';
+      modalTitle.textContent = 'ภารกิจล้มเหลว!';
+      btnAction.textContent = 'ลองใหม่อีกครั้ง 🔄';
+    }
+    modalDesc.textContent = message;
+    overlay.classList.remove('hidden');
+  }
+
+  // --- Rendering ---
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 34;
+    ctx.beginPath();
+    waypoints.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+    ctx.stroke();
+
+    ctx.strokeStyle = '#252f48';
+    ctx.lineWidth = 26;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.stroke();
+    ctx.restore();
+
+    const startPt = waypoints[0];
+    ctx.fillStyle = '#090d16';
+    ctx.beginPath();
+    ctx.arc(startPt.x, startPt.y, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🕳️', startPt.x, startPt.y);
+
+    const endPt = waypoints[waypoints.length - 1];
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(endPt.x, endPt.y, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '22px sans-serif';
+    ctx.fillText('🐱', endPt.x, endPt.y);
+
+    for (let i = dragonSegments.length - 1; i >= 0; i--) {
+      const seg = dragonSegments[i];
+      if (seg.dist < -10) continue;
+      const pos = getPointAtDist(seg.dist);
+      const pal = seg.colorIdx < 0 ? FOG : PALETTE[seg.colorIdx];
+      const isHead = (i === 0);
+      const r = isHead ? seg.radius + 3 : seg.radius;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y + 3, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = pal.fill;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = pal.light;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r - 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (isHead) {
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(pos.angle);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(5, -6, 4, 0, Math.PI * 2);
+        ctx.arc(5, 6, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(6.5, -6, 2, 0, Math.PI * 2);
+        ctx.arc(6.5, 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const center = getSlotCenter(i);
+      const x = center.x - slotArea.slotW / 2;
+      const y = center.y - slotArea.slotH / 2;
+
+      ctx.fillStyle = '#131824';
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, y, slotArea.slotW, slotArea.slotH, 12, true, true);
+
+      const turret = slots[i];
+      if (turret) {
+        const pal = PALETTE[turret.colorIdx];
+        const recoilY = turret.recoil * 5;
+        ctx.fillStyle = pal.fill;
+        roundRect(ctx, x + 5, y + 7 + recoilY, slotArea.slotW - 10, slotArea.slotH - 12, 10, true, false);
+        ctx.fillStyle = pal.dark;
+        roundRect(ctx, center.x - 6, y - 3 + recoilY, 12, 14, 4, true, false);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(turret.ammo, center.x, center.y + 4 + recoilY);
+      }
+    }
+
+    ctx.fillStyle = '#131824';
+    roundRect(ctx, gridArea.x - 8, gridArea.y - 8, gridArea.w + 16, gridArea.h + 16, 16, true, false);
+
+    for (let r = 0; r < gridRows; r++) {
+      for (let c = 0; c < gridCols; c++) {
+        const cx = gridArea.x + c * gridArea.cellSize;
+        const cy = gridArea.y + r * gridArea.cellSize;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx + 3, cy + 3, gridArea.cellSize - 6, gridArea.cellSize - 6);
+
+        const car = grid[r]?.[c];
+        if (car && car.wall) {
+          ctx.fillStyle = '#334155';
+          roundRect(ctx, cx + 5, cy + 5, gridArea.cellSize - 10, gridArea.cellSize - 10, 10, true, false);
+          ctx.font = '26px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('🪨', cx + gridArea.cellSize / 2, cy + gridArea.cellSize / 2 + 1);
+        } else if (car) {
+          const shakeX = car.shake > 0 ? Math.sin(car.shake * 55) * 4 : 0;
+          drawCar(
+            cx + gridArea.cellSize / 2 + shakeX,
+            cy + gridArea.cellSize / 2,
+            gridArea.cellSize - 10,
+            car.colorIdx,
+            car.dir,
+            car.ammo,
+            car.mystery,
+            isPathClearInSim(grid, r, c, car.dir)
+          );
+        }
+      }
+    }
+
+    if (hintT > 6 && gameState === 'PLAYING') {
+      const h = getHint();
+      if (h) {
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+        ctx.strokeStyle = `rgba(255,255,255,${0.4 + 0.5 * pulse})`;
+        ctx.lineWidth = 3;
+        roundRect(ctx, gridArea.x + h.c * gridArea.cellSize + 2, gridArea.y + h.r * gridArea.cellSize + 2, gridArea.cellSize - 4, gridArea.cellSize - 4, 12, false, true);
+      }
+    }
+
+    for (const m of movingCars) {
+      drawCar(m.x, m.y, slotArea.slotW - 8, m.colorIdx, DIRS[0], m.ammo, false, true);
+    }
+
+    for (const b of bullets) {
+      const pal = PALETTE[b.colorIdx];
+      ctx.fillStyle = pal.light;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = pal.fill;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life * 2);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    for (const ft of floatingTexts) {
+      ctx.globalAlpha = Math.min(1, ft.life * 1.5);
+      ctx.fillStyle = ft.color;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.text, ft.x, ft.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawCar(cx, cy, size, colorIdx, dir, ammo, isMystery, isReady) {
+    const pal = isMystery
+      ? { fill: '#475569', dark: '#1e293b', light: '#94a3b8' }
+      : PALETTE[colorIdx];
+    const half = size / 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    if (isReady && !isMystery) {
+      ctx.shadowColor = pal.fill;
+      ctx.shadowBlur = 8;
+    }
+
+    ctx.fillStyle = pal.fill;
+    roundRect(ctx, -half, -half, size, size, 11, true, false);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = pal.dark;
+    roundRect(ctx, -half + 4, -half + 4, size - 8, size - 8, 8, true, false);
+
+    ctx.save();
+    ctx.rotate(dir.angle);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(half - 6, 0);
+    ctx.lineTo(half - 14, -6);
+    ctx.lineTo(half - 14, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.floor(size * 0.34)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isMystery ? '?' : ammo, 0, 1);
+
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // --- Game Loop ---
+  function loop(timestamp) {
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // --- Controls ---
+  btnSpeed.addEventListener('click', () => {
+    if (speedMult === 1) {
+      speedMult = 2;
+      btnSpeed.textContent = '⏩ x2';
+      btnSpeed.className = 'btn-ctrl fast-2';
+    } else if (speedMult === 2) {
+      speedMult = 4;
+      btnSpeed.textContent = '⚡ x4';
+      btnSpeed.className = 'btn-ctrl fast-4';
+    } else {
+      speedMult = 1;
+      btnSpeed.textContent = '⏩ x1';
+      btnSpeed.className = 'btn-ctrl';
+    }
+  });
+
+  btnRestart.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    initLevel(level);
+    gameState = 'PLAYING';
+  });
+
+  btnSound.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    btnSound.textContent = soundEnabled ? '🔊' : '🔇';
+  });
+
+  btnAction.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    if (gameState === 'WIN') initLevel(level + 1);
+    else if (gameState === 'MENU') initLevel(save.unlocked);
+    else initLevel(level);
+    gameState = 'PLAYING';
+  });
+
+  // Boot
+  resize();
+  initLevel(save.unlocked);
+  if (save.unlocked > 1) btnAction.textContent = `เล่นต่อ ด่าน ${save.unlocked} ▶`;
+  requestAnimationFrame((t) => {
+    lastTime = t;
+    loop(t);
+  });
+})();
+</script>
+</body>
+</html>
